@@ -3,6 +3,7 @@ import sys
 import pygame
 
 boxes = pygame.sprite.Group()
+cp = pygame.sprite.Group()
 
 
 class Hero(pygame.sprite.Sprite):
@@ -21,11 +22,14 @@ class Tile(pygame.sprite.Sprite):
         super().__init__(app.tiles_group, app.all_sprites)
         tile_images = {
             'wall': app.load_image('box.png'),
-            'empty': app.load_image('grass.png')
+            'empty': app.load_image('grass.png'),
+            'checkpoint': app.load_image('check.png')
         }
         self.image = tile_images[tile_type]
         if tile_type == 'wall':
             boxes.add(self)
+        if tile_type == 'checkpoint':
+            cp.add(self)
         self.rect = self.image.get_rect().move(
             app.tile_width * pos_x, app.tile_height * pos_y)
 class App:
@@ -74,7 +78,6 @@ class App:
         # дополняем каждую строку пустыми клетками ('.')
         return list(map(lambda x: x.ljust(max_width, '.'), level_map))
     def generate_level(self, level):
-        new_player, x, y = None, None, None
         for y in range(len(level)):
             for x in range(len(level[y])):
                 if level[y][x] == '.':
@@ -84,6 +87,8 @@ class App:
                 elif level[y][x] == '@':
                     Tile(self, 'empty', x, y)
                     self.hero = Hero(self, (x, y))
+                elif level[y][x] == 'C':
+                    Tile(self, 'checkpoint', x, y)
         # вернем игрока, а также размер поля в клетках
         #return #new_player, x, y
     def start_screen(self):
@@ -137,14 +142,20 @@ class App:
                     self.hero.update(self.hero.rect.x - cell_size, self.hero.rect.y)
                     if pygame.sprite.spritecollideany(self.hero, boxes):
                         self.hero.update(self.hero.rect.x + cell_size, self.hero.rect.y)
-            # update
+
+            if pygame.sprite.spritecollideany(self.hero, cp):
+                boxes.empty()
+                self.hero.kill()
+                self.generate_level(self.load_level('map2.txt'))
+                pygame.display.update()
+
 
             # render
             self.screen.fill(pygame.Color('blue'))
             #self.all_sprites.draw(self.screen)
             self.tiles_group.draw(self.screen)
             self.player_group.draw(self.screen)
-            pygame.display.flip()
+            pygame.display.update()
             self.clock.tick(self.fps)
 
 if __name__ == '__main__':
